@@ -1,5 +1,3 @@
-from aiogram import Router
-from .user_handlers import user_router
+from .user_handlers import router
 
-router = Router()
-router.include_router(user_router)
+__all__ = ['router']

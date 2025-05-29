@@ -3,7 +3,6 @@ from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from typing import Callable, Dict, Any, Awaitable
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.user import User
-from ..models import get_db
 import logging
 
 
