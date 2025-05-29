@@ -1,49 +1,45 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  db:
-    image: postgres:15
-    container_name: postgres_db
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-    networks:
-      - bot_network
-
   bot:
     build:
       context: ./bot
       dockerfile: Dockerfile
     container_name: telegram_bot
-    depends_on:
-      - db
     env_file:
       - .env
-    networks:
-      - bot_network
-
-  admin_panel:
-    build:
-      context: ./admin_panel
-      dockerfile: Dockerfile
-    container_name: django_admin
+    volumes:
+      - ./bot:/app
+    restart: unless-stopped
     depends_on:
       - db
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  admin:
+    build:
+      context: ./admin_panel
+    container_name: admin_panel
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./admin_panel:/app
     env_file:
       - .env
     ports:
       - "8000:8000"
-    networks:
-      - bot_network
+    depends_on:
+      - db
 
 volumes:
-  postgres_data:
-
-networks:
-  bot_network:
-    driver: bridge
+  pgdata:

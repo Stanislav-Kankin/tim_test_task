@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
+from ..models.order import Order
 from ..models import get_db
 from ..models.order import Cart
 from ..keyboards.user_keyboards import cart_kb, back_to_menu_kb

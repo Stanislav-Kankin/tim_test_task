@@ -3,6 +3,8 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from dotenv import load_dotenv
 import os
+from .handlers.user_handlers import router as user_router
+from .handlers.cart_handlers import router as cart_router
 
 load_dotenv()
 
@@ -12,3 +14,5 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
 dp = Dispatcher()
+dp.include_router(user_router)
+dp.include_router(cart_router)

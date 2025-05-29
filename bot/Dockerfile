@@ -5,6 +5,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/ .
+COPY . .
 
-CMD ["python", "-m", "src.main"]  # Запуск как модуля!
+# Указываем PYTHONPATH, чтобы Python корректно находил src
+ENV PYTHONPATH=/app
+
+# Точка входа — main.py внутри src
+CMD ["python", "-m", "src.main"]
