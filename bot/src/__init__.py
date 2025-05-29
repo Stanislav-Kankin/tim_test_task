@@ -4,6 +4,8 @@ from aiogram.client.default import DefaultBotProperties
 from dotenv import load_dotenv
 import os
 
+from .handlers import router
+
 # Загружаем переменные окружения
 load_dotenv()
 
@@ -19,9 +21,6 @@ bot = Bot(
 
 # Диспетчер
 dp = Dispatcher()
-
-# Импортируем роутеры после инициализации dp, чтобы избежать circular imports
-from .handlers import router
 
 # Регистрация роутеров
 dp.include_router(router)
