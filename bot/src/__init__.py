@@ -3,7 +3,7 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from dotenv import load_dotenv
 import os
-
+from .middlewares.subscription import SubscriptionCheckMiddleware
 from .handlers import router
 
 # Загружаем переменные окружения
@@ -19,8 +19,11 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 
-# Диспетчер
+# Инициализация диспетчера
 dp = Dispatcher()
+
+# Добавляем middleware проверки подписки
+dp.message.middleware(SubscriptionCheckMiddleware(bot))
 
 # Регистрация роутеров
 dp.include_router(router)
