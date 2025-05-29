@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.filters import StateFilter
 
 from ..models.order import Order
 from ..models import get_db
@@ -83,7 +84,7 @@ async def checkout(callback: CallbackQuery, state: FSMContext):
         logging.error(f"[!][!][!]Ошибка в checkout: {e}")
 
 
-@router.message(state="waiting_for_delivery_info")
+@router.message(StateFilter("waiting_for_delivery_info"))
 async def process_delivery_info(message: Message, state: FSMContext):
     try:
         delivery_info = message.text
