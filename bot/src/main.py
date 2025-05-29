@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from . import bot, dp
+from bot import dp, bot
+
 
 # Настройка логирования
 logging.basicConfig(
