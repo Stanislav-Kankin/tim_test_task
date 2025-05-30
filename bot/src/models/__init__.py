@@ -1,7 +1,9 @@
 from .db import Base, engine, async_session
 from .order import Order, Cart
 from .user import User
-from .catalog import Category, Subcategory, Product
+from .category import Category
+from .subcategory import Subcategory
+from .product import Product
 
 from contextlib import asynccontextmanager
 
