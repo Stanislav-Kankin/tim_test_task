@@ -30,18 +30,6 @@ def main_menu_kb() -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True)
 
 
-def categories_kb() -> ReplyKeyboardMarkup:
-    builder = ReplyKeyboardBuilder()
-
-    builder.button(text="Электроника")
-    builder.button(text="Одежда")
-    builder.button(text="Книги")
-    builder.button(text="Главное меню")
-
-    builder.adjust(2)
-    return builder.as_markup(resize_keyboard=True)
-
-
 def generate_cart_keyboard(cart_items):
     buttons = [
         [InlineKeyboardButton(
@@ -57,3 +45,19 @@ def generate_cart_keyboard(cart_items):
         text="✅ Оформить",
         callback_data="checkout")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_categories_kb(categories):
+    builder = InlineKeyboardBuilder()
+    for category in categories:
+        builder.button(text=category.name, callback_data=f"category:{category.id}")
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_subcategories_kb(subcategories):
+    builder = InlineKeyboardBuilder()
+    for sub in subcategories:
+        builder.button(text=sub.name, callback_data=f"subcategory:{sub.id}")
+    builder.adjust(2)
+    return builder.as_markup()
