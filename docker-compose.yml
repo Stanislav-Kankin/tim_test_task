@@ -26,13 +26,13 @@ services:
       - db
     restart: on-failure
 
-  admin:
+  admin_panel:
     build:
       context: ./admin_panel
     container_name: admin_panel
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./admin_panel:/code
+      - ./admin_panel:/app
     ports:
       - "8000:8000"
     env_file:

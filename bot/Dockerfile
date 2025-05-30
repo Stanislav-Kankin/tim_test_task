@@ -2,14 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Указываем PYTHONPATH, чтобы Python корректно находил src
 ENV PYTHONPATH=/app
 
-# Точка входа — main.py внутри src
-CMD ["bash", "-c", "python src/init_db.py && python -m src.main"]
-
+CMD ["bash", "entrypoint.sh"]
