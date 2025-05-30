@@ -1,27 +1,62 @@
 from django.db import models
 
 
-class Order(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Ожидает обработки'),
-        ('processing', 'В обработке'),
-        ('shipped', 'Отправлен'),
-        ('delivered', 'Доставлен'),
-        ('cancelled', 'Отменен'),
-    ]
-
-    telegram_user_id = models.BigIntegerField()
-    product_name = models.CharField(max_length=200)
-    quantity = models.IntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default='pending'
-        )
-    delivery_info = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+class User(models.Model):
+    telegram_id = models.BigIntegerField(unique=True)
+    full_name = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Order #{self.id} - {self.product_name}"
+        return self.full_name
 
-    class Meta:
-        ordering = ['-created_at']
+
+class Category(models.Model):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
+class Subcategory(models.Model):
+    name = models.CharField(max_length=255)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="subcategories")
+
+    def __str__(self):
+        return f"{self.category.name} > {self.name}"
+
+
+class Product(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    image = models.ImageField(upload_to='product_images/', blank=True, null=True)
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE, related_name="products")
+
+    def __str__(self):
+        return self.name
+
+
+class Cart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cart")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.user.full_name} – {self.product.name} (x{self.quantity})"
+
+
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
+    created_at = models.DateTimeField(auto_now_add=True)
+    items = models.ManyToManyField(Product, through='OrderItem')
+
+    def __str__(self):
+        return f"Order #{self.pk} by {self.user.full_name}"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.product.name} x{self.quantity}"
