@@ -1,8 +1,10 @@
 from .db import Base, engine, async_session
 from .order import Order, Cart
 from .user import User
+from .catalog import Category, Subcategory, Product
 
 from contextlib import asynccontextmanager
+
 
 @asynccontextmanager
 async def get_db():

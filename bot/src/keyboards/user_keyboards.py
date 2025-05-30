@@ -40,3 +40,20 @@ def categories_kb() -> ReplyKeyboardMarkup:
 
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
+
+
+def generate_cart_keyboard(cart_items):
+    buttons = [
+        [InlineKeyboardButton(
+            text=f"✏️ Изменить {item.product_name}",
+            callback_data=f"edit_{item.id}"
+            )]
+        for item in cart_items
+    ]
+    buttons.append([InlineKeyboardButton(
+        text="🧹 Очистить",
+        callback_data="clear_cart")])
+    buttons.append([InlineKeyboardButton(
+        text="✅ Оформить",
+        callback_data="checkout")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

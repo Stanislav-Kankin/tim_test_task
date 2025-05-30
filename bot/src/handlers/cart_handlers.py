@@ -1,13 +1,17 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter
 
 from ..states import CheckoutState
 from ..models.order import Order, Cart
 from ..models import get_db
-from ..keyboards.user_keyboards import cart_kb, back_to_menu_kb, main_menu_kb
+from ..keyboards.user_keyboards import (
+    cart_kb, back_to_menu_kb,
+    generate_cart_keyboard, main_menu_kb)
 
+from sqlalchemy import update
 import logging
 
 router = Router()
@@ -17,6 +21,10 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+class EditCartState(StatesGroup):
+    waiting_for_quantity = State()
 
 
 @router.message(F.text.startswith("/add"))
@@ -48,10 +56,14 @@ async def add_to_cart(message: Message):
 async def show_cart(message: Message):
     try:
         async with get_db() as session:
-            cart_items = await Cart.get_user_cart(session, message.from_user.id)
+            cart_items = await Cart.get_user_cart(
+                session, message.from_user.id)
 
         if not cart_items:
-            await message.answer("Ваша корзина пуста", reply_markup=back_to_menu_kb())
+            await message.answer(
+                "Ваша корзина пуста",
+                reply_markup=back_to_menu_kb()
+                )
             return
 
         total = sum(item.price * item.quantity for item in cart_items)
@@ -62,7 +74,7 @@ async def show_cart(message: Message):
 
         await message.answer(
             f"🛒 Ваша корзина:\n\n{items_text}\n\nИтого: {total} руб.",
-            reply_markup=cart_kb()
+            reply_markup=generate_cart_keyboard(cart_items)
         )
     except Exception as e:
         await message.answer("Ошибка при загрузке корзины")
@@ -75,7 +87,10 @@ async def clear_cart(callback: CallbackQuery):
         async with get_db() as session:
             await Cart.clear_user_cart(session, callback.from_user.id)
 
-        await callback.message.edit_text("🧹 Корзина очищена", reply_markup=back_to_menu_kb())
+        await callback.message.edit_text(
+            "🧹 Корзина очищена",
+            reply_markup=back_to_menu_kb()
+            )
     except Exception as e:
         await callback.answer("Ошибка при очистке корзины")
         logger.error(f"[clear_cart] Ошибка: {e}")
@@ -85,14 +100,16 @@ async def clear_cart(callback: CallbackQuery):
 async def checkout(callback: CallbackQuery, state: FSMContext):
     try:
         async with get_db() as session:
-            cart_items = await Cart.get_user_cart(session, callback.from_user.id)
+            cart_items = await Cart.get_user_cart(
+                session, callback.from_user.id)
 
         if not cart_items:
             await callback.answer("Корзина пуста")
             return
 
         await callback.message.answer(
-            "📦 Введите данные для доставки в формате:\nФИО, адрес, телефон"
+            "📦 Введите данные для доставки в "
+            "формате:\n\n<b>ФИО</b>\n<b>Адрес</b>\n<b>Телефон</b>"
         )
         await state.set_state(CheckoutState.waiting_for_delivery_info)
     except Exception as e:
@@ -150,3 +167,32 @@ async def help_handler(message: Message):
         "/menu — главное меню\n"
         "/add Название, Кол-во, Цена — добавить товар"
     )
+
+
+@router.callback_query(F.data.startswith("edit_"))
+async def start_edit(callback: CallbackQuery, state: FSMContext):
+    cart_id = int(callback.data.split("_")[1])
+    await state.update_data(cart_id=cart_id)
+    await state.set_state(EditCartState.waiting_for_quantity)
+    await callback.message.answer("Введите новое количество:")
+
+
+@router.message(StateFilter(EditCartState.waiting_for_quantity))
+async def save_new_quantity(message: Message, state: FSMContext):
+    try:
+        new_quantity = int(message.text)
+        data = await state.get_data()
+        cart_id = data.get("cart_id")
+
+        async with get_db() as session:
+            await session.execute(
+                update(Cart).where(Cart.id == cart_id).values(quantity=new_quantity)
+            )
+            await session.commit()
+
+        await message.answer("✅ Количество обновлено!", reply_markup=main_menu_kb())
+        await state.clear()
+
+    except Exception as e:
+        await message.answer("Ошибка при обновлении")
+        logger.error(f"[save_new_quantity] Ошибка: {e}")
