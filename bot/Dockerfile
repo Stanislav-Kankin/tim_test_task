@@ -11,4 +11,5 @@ COPY . .
 ENV PYTHONPATH=/app
 
 # Точка входа — main.py внутри src
-CMD ["python", "-m", "src.main"]
+CMD ["bash", "-c", "python src/init_db.py && python -m src.main"]
+
