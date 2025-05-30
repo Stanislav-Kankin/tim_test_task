@@ -1,9 +1,10 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 import logging
+from pathlib import Path
 
 from models import Category, Subcategory, Product, Cart
 from models import get_db
@@ -59,11 +60,19 @@ async def show_products(callback: CallbackQuery):
         builder.button(text="\U0001F6CD В корзину", callback_data=f"add:{product.id}")
         builder.adjust(1)
 
-        await callback.message.answer_photo(
-            photo=f"http://localhost:8000/media/{product.image}" if product.image else None,
-            caption=text,
-            reply_markup=builder.as_markup()
-        )
+        media_path = Path(f"/app/media/{product.photo_url}")
+        if media_path.exists():
+            photo = FSInputFile(media_path)
+            await callback.message.answer_photo(
+                photo=photo,
+                caption=text,
+                reply_markup=builder.as_markup()
+            )
+        else:
+            await callback.message.answer(
+                text=text + "\n\n⚠️ Фото не найдено.",
+                reply_markup=builder.as_markup()
+            )
 
 
 @router.callback_query(F.data.startswith("add:"))
