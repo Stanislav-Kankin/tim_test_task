@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from .bot import bot, dp
+from bot import bot, dp
 
 logging.basicConfig(
     level=logging.INFO,

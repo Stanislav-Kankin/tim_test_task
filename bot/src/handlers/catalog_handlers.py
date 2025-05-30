@@ -1,40 +1,39 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
-from src.database.models import Category, Subcategory, Product
-from src.database.session import async_session
-from src.keyboards.user_keyboards import get_categories_kb, get_subcategories_kb
+import logging
+
+from models import Category, Subcategory, Product, Cart
+from models import get_db
+from keyboards.user_keyboards import get_categories_kb, get_subcategories_kb
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 
 @router.message(F.text == "Категории товаров")
 async def show_categories(message: Message):
-    async with async_session() as session:
+    async with get_db() as session:
         result = await session.execute(select(Category))
         categories = result.scalars().all()
 
     if categories:
-        await message.answer("📂 Выберите категорию:", reply_markup=get_categories_kb(categories))
+        await message.answer("\U0001F4C2 Выберите категорию:", reply_markup=get_categories_kb(categories))
     else:
-        await message.answer("Категорий пока нет 😕")
+        await message.answer("Категорий пока нет \U0001F615")
 
 
 @router.callback_query(F.data.startswith("category:"))
 async def show_subcategories(callback: CallbackQuery):
     category_id = int(callback.data.split(":")[1])
-    async with async_session() as session:
-        result = await session.execute(
-            select(Subcategory).where(Subcategory.category_id == category_id)
-        )
+    async with get_db() as session:
+        result = await session.execute(select(Subcategory).where(Subcategory.category_id == category_id))
         subcategories = result.scalars().all()
 
     if subcategories:
-        await callback.message.edit_text(
-            "📁 Выберите подкатегорию:",
-            reply_markup=get_subcategories_kb(subcategories)
-        )
+        await callback.message.edit_text("\U0001F4C1 Выберите подкатегорию:", reply_markup=get_subcategories_kb(subcategories))
     else:
         await callback.message.edit_text("Подкатегорий пока нет.")
 
@@ -42,10 +41,8 @@ async def show_subcategories(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("subcategory:"))
 async def show_products(callback: CallbackQuery):
     subcategory_id = int(callback.data.split(":")[1])
-    async with async_session() as session:
-        result = await session.execute(
-            select(Product).where(Product.subcategory_id == subcategory_id)
-        )
+    async with get_db() as session:
+        result = await session.execute(select(Product).where(Product.subcategory_id == subcategory_id))
         products = result.scalars().all()
 
     if not products:
@@ -58,21 +55,38 @@ async def show_products(callback: CallbackQuery):
             f"{product.description}\n\n"
             f"<b>Цена: {product.price} руб.</b>"
         )
+        builder = InlineKeyboardBuilder()
+        builder.button(text="\U0001F6CD В корзину", callback_data=f"add:{product.id}")
+        builder.adjust(1)
+
         await callback.message.answer_photo(
-            photo=product.photo_url,
+            photo=f"http://localhost:8000/media/{product.image}" if product.image else None,
             caption=text,
-            reply_markup=None  # Можно позже сделать кнопку "Добавить в корзину"
+            reply_markup=builder.as_markup()
         )
+
+
+@router.callback_query(F.data.startswith("add:"))
+async def add_product_to_cart(callback: CallbackQuery):
+    product_id = int(callback.data.split(":")[1])
+    try:
+        async with get_db() as session:
+            product = await session.get(Product, product_id)
+            if not product:
+                await callback.answer("\u274C Товар не найден")
+                return
+            await Cart.add_to_cart(session, callback.from_user.id, product.name, 1, float(product.price))
+            await callback.answer(f"\u2705 {product.name} добавлен в корзину!")
+    except Exception as e:
+        await callback.answer("Ошибка при добавлении")
+        logger.error(f"[add_product_to_cart] Ошибка: {e}")
 
 
 @router.message(F.text == "/test")
 async def test_inline_button(message: Message):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Нажми меня", callback_data="test_click")]
-        ]
-    )
-    await message.answer("Вот кнопка:", reply_markup=keyboard)
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Нажми меня", callback_data="test_click")
+    await message.answer("Вот кнопка:", reply_markup=builder.as_markup())
 
 
 @router.callback_query(F.data == "test_click")

@@ -4,10 +4,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter
 
-from ..states import CheckoutState
-from ..models.order import Order, Cart
-from ..models import get_db
-from ..keyboards.user_keyboards import (
+from states import CheckoutState
+from models.order import Order, Cart
+from models import get_db
+from keyboards.user_keyboards import (
     cart_kb, back_to_menu_kb,
     generate_cart_keyboard, main_menu_kb)
 

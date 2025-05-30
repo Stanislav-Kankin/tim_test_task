@@ -2,7 +2,7 @@ from aiogram import types, Bot
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from typing import Callable, Dict, Any, Awaitable
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models.user import User
+from models.user import User
 import logging
 
 

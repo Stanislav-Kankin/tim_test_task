@@ -3,7 +3,7 @@ from sqlalchemy import (
     ForeignKey, select, delete
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from .db import Base
+from models.db import Base
 
 
 class Cart(Base):

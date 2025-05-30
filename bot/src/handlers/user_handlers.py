@@ -4,7 +4,7 @@ from aiogram.filters import Command
 
 import logging
 
-from ..keyboards.user_keyboards import main_menu_kb
+from keyboards.user_keyboards import main_menu_kb
 
 router = Router()
 

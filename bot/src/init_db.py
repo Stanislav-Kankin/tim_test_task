@@ -1,5 +1,5 @@
 import asyncio
-from src.models import Base, engine
+from models import Base, engine
 from sqlalchemy.engine.url import make_url
 
 

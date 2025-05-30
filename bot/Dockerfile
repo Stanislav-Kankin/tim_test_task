@@ -1,14 +1,16 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /app/src
 
-RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
+# Установим netcat-openbsd
+RUN apt-get update && apt-get install -y netcat-openbsd && apt-get clean
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY . .
+COPY ./src /app/src
+COPY ./entrypoint.sh /app/entrypoint.sh
 
-ENV PYTHONPATH=/app
+RUN chmod +x /app/entrypoint.sh
 
-CMD ["bash", "entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
