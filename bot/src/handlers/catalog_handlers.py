@@ -9,7 +9,10 @@ import os
 
 from models import Category, Subcategory, Product, Cart
 from models import get_db
-from keyboards.user_keyboards import get_categories_kb, get_subcategories_kb
+from keyboards.user_keyboards import (
+    get_categories_kb, get_subcategories_kb,
+    get_paginated_keyboard,
+    )
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -22,9 +25,12 @@ async def show_categories(message: Message):
         categories = result.scalars().all()
 
     if categories:
-        await message.answer("Выберите категорию:", reply_markup=get_categories_kb(categories))
+        await message.answer(
+            "📂 Выберите категорию:",
+            reply_markup=get_paginated_keyboard(categories, "category", page=1)
+        )
     else:
-        await message.answer("Категорий пока нет")
+        await message.answer("Категорий пока нет 😔")
 
 
 @router.callback_query(F.data.startswith("category:"))
@@ -35,7 +41,10 @@ async def show_subcategories(callback: CallbackQuery):
         subcategories = result.scalars().all()
 
     if subcategories:
-        await callback.message.edit_text("Выберите подкатегорию:", reply_markup=get_subcategories_kb(subcategories))
+        await callback.message.edit_text(
+            "📁 Выберите подкатегорию:",
+            reply_markup=get_paginated_keyboard(subcategories, "subcategory", page=1)
+        )
     else:
         await callback.message.edit_text("Подкатегорий пока нет.")
 
@@ -74,7 +83,6 @@ async def show_products(callback: CallbackQuery):
             await callback.message.answer("Фото не найдено", reply_markup=builder.as_markup())
 
 
-
 @router.callback_query(F.data.startswith("add:"))
 async def add_product_to_cart(callback: CallbackQuery):
     product_id = int(callback.data.split(":")[1])
@@ -91,13 +99,26 @@ async def add_product_to_cart(callback: CallbackQuery):
         logger.error(f"[add_product_to_cart] Ошибка: {e}")
 
 
-@router.message(F.text == "/test")
-async def test_inline_button(message: Message):
-    builder = InlineKeyboardBuilder()
-    builder.button(text="Нажми меня", callback_data="test_click")
-    await message.answer("Вот кнопка:", reply_markup=builder.as_markup())
+@router.callback_query(F.data.startswith("category_page:"))
+async def paginate_categories(callback: CallbackQuery):
+    page = int(callback.data.split(":")[1])
+    async with get_db() as session:
+        result = await session.execute(select(Category))
+        categories = result.scalars().all()
+
+    await callback.message.edit_reply_markup(
+        reply_markup=get_paginated_keyboard(categories, "category", page)
+    )
 
 
-@router.callback_query(F.data == "test_click")
-async def test_click_handler(callback: CallbackQuery):
-    await callback.answer("Кнопка работает!")
+@router.callback_query(F.data.startswith("subcategory_page:"))
+async def paginate_subcategories(callback: CallbackQuery):
+    page = int(callback.data.split(":")[1])
+    async with get_db() as session:
+        category_id = ...  # нужно как-то сохранить category_id (например, через FSM или callback data)
+        result = await session.execute(select(Subcategory).where(Subcategory.category_id == category_id))
+        subcategories = result.scalars().all()
+
+    await callback.message.edit_reply_markup(
+        reply_markup=get_paginated_keyboard(subcategories, "subcategory", page)
+    )
