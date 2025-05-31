@@ -61,18 +61,18 @@ async def show_products(callback: CallbackQuery):
         builder.button(text="В корзину", callback_data=f"add:{product.id}")
         builder.adjust(1)
 
-        photo_path = product.photo_url
+        photo_path = f"/app/media/{product.photo}"
 
         if photo_path and os.path.exists(photo_path):
             photo = FSInputFile(photo_path)
+            await callback.message.answer_photo(
+                photo=photo,
+                caption=text,
+                reply_markup=builder.as_markup()
+            )
         else:
-            photo = None
+            await callback.message.answer("Фото не найдено", reply_markup=builder.as_markup())
 
-        await callback.message.answer_photo(
-            photo=photo,
-            caption=text,
-            reply_markup=builder.as_markup()
-        )
 
 
 @router.callback_query(F.data.startswith("add:"))
