@@ -31,6 +31,7 @@ services:
       - db
     volumes:
       - ./admin_panel:/app
+      - ./admin_panel/media:/app/media
 
   bot:
     build:
@@ -48,6 +49,7 @@ services:
       - db
     volumes:
       - ./bot:/app
+      - ./admin_panel/media:/app/media
 
 volumes:
   pgdata:

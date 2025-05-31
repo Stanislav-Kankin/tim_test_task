@@ -21,9 +21,9 @@ async def show_categories(message: Message):
         categories = result.scalars().all()
 
     if categories:
-        await message.answer("\U0001F4C2 Выберите категорию:", reply_markup=get_categories_kb(categories))
+        await message.answer("Выберите категорию:", reply_markup=get_categories_kb(categories))
     else:
-        await message.answer("Категорий пока нет \U0001F615")
+        await message.answer("Категорий пока нет")
 
 
 @router.callback_query(F.data.startswith("category:"))
@@ -34,7 +34,7 @@ async def show_subcategories(callback: CallbackQuery):
         subcategories = result.scalars().all()
 
     if subcategories:
-        await callback.message.edit_text("\U0001F4C1 Выберите подкатегорию:", reply_markup=get_subcategories_kb(subcategories))
+        await callback.message.edit_text("Выберите подкатегорию:", reply_markup=get_subcategories_kb(subcategories))
     else:
         await callback.message.edit_text("Подкатегорий пока нет.")
 
@@ -57,12 +57,18 @@ async def show_products(callback: CallbackQuery):
             f"<b>Цена: {product.price} руб.</b>"
         )
         builder = InlineKeyboardBuilder()
-        builder.button(text="\U0001F6CD В корзину", callback_data=f"add:{product.id}")
+        builder.button(text="В корзину", callback_data=f"add:{product.id}")
         builder.adjust(1)
 
-        media_path = Path(f"/app/media/{product.photo_url}")
-        if media_path.exists():
-            photo = FSInputFile(media_path)
+        photo_path = f"/app/media/{product.photo_url}"
+
+        try:
+            photo = FSInputFile(photo_path)
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке фото: {e}")
+            photo = None
+
+        if photo:
             await callback.message.answer_photo(
                 photo=photo,
                 caption=text,
@@ -70,7 +76,7 @@ async def show_products(callback: CallbackQuery):
             )
         else:
             await callback.message.answer(
-                text=text + "\n\n⚠️ Фото не найдено.",
+                text=text,
                 reply_markup=builder.as_markup()
             )
 
@@ -82,10 +88,10 @@ async def add_product_to_cart(callback: CallbackQuery):
         async with get_db() as session:
             product = await session.get(Product, product_id)
             if not product:
-                await callback.answer("\u274C Товар не найден")
+                await callback.answer("Товар не найден")
                 return
             await Cart.add_to_cart(session, callback.from_user.id, product.name, 1, float(product.price))
-            await callback.answer(f"\u2705 {product.name} добавлен в корзину!")
+            await callback.answer(f"{product.name} добавлен в корзину!")
     except Exception as e:
         await callback.answer("Ошибка при добавлении")
         logger.error(f"[add_product_to_cart] Ошибка: {e}")
