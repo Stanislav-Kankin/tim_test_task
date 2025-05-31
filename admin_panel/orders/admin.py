@@ -9,11 +9,9 @@ from .models import (
     BroadcastMessage
 )
 from django.utils.html import format_html
+from django.conf import settings
 import requests
-import os
 
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -70,36 +68,41 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(BroadcastMessage)
 class BroadcastMessageAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "is_sent"]
-    readonly_fields = ["is_sent"]
+    list_display = ("text", "created_at", "is_sent", "send_now_button")
 
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
+    def send_now_button(self, obj):
+        return format_html(
+            '<a class="button" href="{}">Отправить сейчас</a>',
+            f"/admin/orders/broadcastmessage/{obj.id}/send/"
+        )
+    send_now_button.short_description = "Отправка"
+    send_now_button.allow_tags = True
 
-        if not obj.is_sent:
-            users = User.objects.values_list("telegram_id", flat=True)
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:message_id>/send/', self.admin_site.admin_view(self.send_now_view), name="broadcast_send_now"),
+        ]
+        return custom_urls + urls
 
-            for user_id in users:
-                payload = {
-                    "chat_id": user_id,
-                    "text": obj.text,
-                    "parse_mode": "HTML"
-                }
+    def send_now_view(self, request, message_id):
+        from django.shortcuts import redirect, get_object_or_404
+        message = get_object_or_404(BroadcastMessage, pk=message_id)
+        from .models import User
+        users = User.objects.all()
 
-                if obj.image:
-                    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-                    files = {"photo": obj.image.open("rb")}
-                    data = {"chat_id": user_id, "caption": obj.text, "parse_mode": "HTML"}
-                    try:
-                        requests.post(url, data=data, files=files)
-                    except Exception as e:
-                        print(f"Ошибка отправки фото пользователю {user_id}: {e}")
-                else:
-                    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-                    try:
-                        requests.post(url, data=payload)
-                    except Exception as e:
-                        print(f"Ошибка отправки сообщения пользователю {user_id}: {e}")
+        for user in users:
+            if user.telegram_id:
+                try:
+                    requests.post(
+                        f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
+                        data={"chat_id": user.telegram_id, "text": message.text}
+                    )
+                except Exception as e:
+                    print(f"Ошибка отправки пользователю {user.telegram_id}: {e}")
 
-            obj.is_sent = True
-            obj.save()
+        message.is_sent = True
+        message.save()
+        self.message_user(request, "Рассылка отправлена.")
+        return redirect("/admin/orders/broadcastmessage/")
