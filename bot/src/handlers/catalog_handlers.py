@@ -5,6 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 import logging
 from pathlib import Path
+import os
 
 from models import Category, Subcategory, Product, Cart
 from models import get_db
@@ -60,25 +61,18 @@ async def show_products(callback: CallbackQuery):
         builder.button(text="В корзину", callback_data=f"add:{product.id}")
         builder.adjust(1)
 
-        photo_path = f"/app/img/{product.photo_url}"
+        photo_path = product.photo_url
 
-        try:
+        if photo_path and os.path.exists(photo_path):
             photo = FSInputFile(photo_path)
-        except Exception as e:
-            logger.error(f"Ошибка при загрузке фото: {e}")
+        else:
             photo = None
 
-        if photo:
-            await callback.message.answer_photo(
-                photo=photo,
-                caption=text,
-                reply_markup=builder.as_markup()
-            )
-        else:
-            await callback.message.answer(
-                text=text,
-                reply_markup=builder.as_markup()
-            )
+        await callback.message.answer_photo(
+            photo=photo,
+            caption=text,
+            reply_markup=builder.as_markup()
+        )
 
 
 @router.callback_query(F.data.startswith("add:"))
