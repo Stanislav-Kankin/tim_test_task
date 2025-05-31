@@ -83,3 +83,17 @@ class Order(models.Model):
 
     def __str__(self):
         return f'Order #{self.id} — {self.user}'
+
+
+class BroadcastMessage(models.Model):
+    text = models.TextField("Текст сообщения")
+    image = models.ImageField("Картинка (опционально)", upload_to='broadcast_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_sent = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Рассылка от {self.created_at:%Y-%m-%d %H:%M}"
+
+    class Meta:
+        verbose_name = "Рассылка"
+        verbose_name_plural = "Рассылки"
