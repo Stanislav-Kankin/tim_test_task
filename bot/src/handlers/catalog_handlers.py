@@ -60,7 +60,7 @@ async def show_products(callback: CallbackQuery):
         builder.button(text="В корзину", callback_data=f"add:{product.id}")
         builder.adjust(1)
 
-        photo_path = f"/app/media/{product.photo_url}"
+        photo_path = f"/app/img/{product.photo_url}"
 
         try:
             photo = FSInputFile(photo_path)
